@@ -1,5 +1,6 @@
 package com.joblessrn.hitchhiike.presentation.new_trip.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -24,6 +25,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
@@ -31,34 +33,41 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.constraintlayout.compose.ConstraintLayout
 import com.joblessrn.hitchhiike.R
+import com.joblessrn.hitchhiike.presentation.new_trip.TripInfo
 
 @Composable
-fun TripItem(){
+fun TripItem(
+    info:TripInfo
+){
     Card(
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant,
         ),
         shape = RoundedCornerShape(50.dp),
         modifier = Modifier
+            .padding(9.dp)
             .fillMaxWidth()
             .height(200.dp),
+        border = BorderStroke(2.dp, Color.LightGray),
         elevation = CardDefaults.cardElevation(5.dp)
     ) {
-        ConstraintLayout(modifier = Modifier.fillMaxSize().padding(5.dp)) {
+        ConstraintLayout(modifier = Modifier
+            .fillMaxSize()
+            .padding(5.dp)) {
             val glStart = createGuidelineFromStart(0.05f)
             val glTop = createGuidelineFromTop(0.05f)
             val glEnd = createGuidelineFromEnd(0.05f)
             val glBot = createGuidelineFromBottom(0.05f)
-            val (cityFrom,cityTo,iconTo, price, iconPassengers,
+            val (cityFrom,cityTo,iconTo, priceTag, iconPassengers,
                 numPassengers,timeDeparture,timeArrive,driverInfo,carType) = createRefs()
 
-            Text(text = "14:00",
+            Text(text = info.departTime,
                 modifier = Modifier.constrainAs(timeDeparture){
                     start.linkTo(glStart)
                     top.linkTo(glTop)
                 },
                 fontSize = 15.sp)
-            Text(text = "Казань",
+            Text(text = info.from,
                 modifier = Modifier.constrainAs(cityFrom){
                     start.linkTo(timeDeparture.end,margin = 8.dp)
                     top.linkTo(glTop)
@@ -74,21 +83,21 @@ fun TripItem(){
                 contentDescription = "null"
             )
 
-            Text(text = "17:00",
+            Text(text = info.arriveTime,
                 modifier = Modifier.constrainAs(timeArrive){
                     start.linkTo(glStart)
                     top.linkTo(iconTo.bottom, margin = 8.dp)
                 },
                 fontSize = 15.sp)
-            Text(text = "Альмет",
+            Text(text = info.to,
                 modifier = Modifier.constrainAs(cityTo){
                     start.linkTo(timeArrive.end,margin = 8.dp)
                     top.linkTo(iconTo.bottom, margin = 8.dp)
                 },
                 fontSize = 20.sp)
 
-            Text(text = "500 P",
-                modifier = Modifier.constrainAs(price){
+            Text(text = "${info.price} P",
+                modifier = Modifier.constrainAs(priceTag){
                     end.linkTo(glEnd)
                     top.linkTo(glTop)
                 },
@@ -102,7 +111,7 @@ fun TripItem(){
                     top.linkTo(cityTo.top)
                 })
 
-            Text(text = "3/4",
+            Text(text = info.seats,
                 modifier = Modifier.constrainAs(numPassengers){
                     end.linkTo(glEnd)
                     top.linkTo(cityTo.top)
@@ -130,15 +139,15 @@ fun TripItem(){
                 )
                 Column(modifier = Modifier.fillMaxHeight(),
                     verticalArrangement = Arrangement.SpaceEvenly) {
-                    Text(text = "Рома",
+                    Text(text = info.driverName,
                         modifier = Modifier
                     )
-                    Text(text = "рейтинг")
+                    Text(text = info.driverRating.toString())
                 }
             }
             Icon(modifier = Modifier
                 .size(50.dp)
-                .constrainAs(carType){
+                .constrainAs(carType) {
                     end.linkTo(glEnd)
                     bottom.linkTo(glBot)
                 },
@@ -153,5 +162,8 @@ fun TripItem(){
     showSystemUi = true)
 @Composable
 fun Prev(){
-    TripItem()
+    TripItem(
+        TripInfo("Москва","Нью-Йорк",400,"12:00","15:00",
+            "John",4.5f,"4/6")
+    )
 }
