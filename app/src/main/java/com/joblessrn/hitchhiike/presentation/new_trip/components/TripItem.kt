@@ -2,6 +2,7 @@ package com.joblessrn.hitchhiike.presentation.new_trip.components
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -34,6 +35,8 @@ import androidx.compose.ui.unit.sp
 import androidx.constraintlayout.compose.ConstraintLayout
 import com.joblessrn.hitchhiike.R
 import com.joblessrn.hitchhiike.presentation.new_trip.TripInfo
+import com.joblessrn.hitchhiike.ui.theme.Purple40
+import com.joblessrn.hitchhiike.ui.theme.TripItemBgColor
 
 @Composable
 fun TripItem(
@@ -41,14 +44,14 @@ fun TripItem(
 ){
     Card(
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+            containerColor = TripItemBgColor
         ),
         shape = RoundedCornerShape(50.dp),
         modifier = Modifier
-            .padding(9.dp)
+            .padding(7.dp)
             .fillMaxWidth()
             .height(200.dp),
-        border = BorderStroke(2.dp, Color.LightGray),
+        border = BorderStroke(2.dp, Color.Black),
         elevation = CardDefaults.cardElevation(5.dp)
     ) {
         ConstraintLayout(modifier = Modifier

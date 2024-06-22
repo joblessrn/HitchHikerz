@@ -8,8 +8,9 @@ sealed class Route(
 ) {
     data object NewTripTab : Route(route = "findTripTab"){
         data object NewTripScreen : Route(route = "newTripScreen")
-        data object NewTripPassenger : Route(route = "newTripPassengerScreen")
-        data object NewTripDriver : Route(route = "newTripDriverScreen")
+        data object FindTrip : Route(route = "newTripPassengerScreen")
+        data object PostTrip : Route(route = "newTripDriverScreen")
+        data object TripsList : Route(route = "tripsList")
     }
 
     data object AccountTab : Route(route = "accountTab"){

@@ -1,19 +1,24 @@
 package com.joblessrn.hitchhiike.presentation.navgraph
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navigation
 import com.joblessrn.hitchhiike.presentation.account.AccountScreen
 import com.joblessrn.hitchhiike.presentation.archived_trips.ArchivedTripsScreen
 import com.joblessrn.hitchhiike.presentation.dialogs.DialogsScreen
 import com.joblessrn.hitchhiike.presentation.new_trip.NewTripScreen
-import com.joblessrn.hitchhiike.presentation.new_trip.as_driver.PostTripDriver
-import com.joblessrn.hitchhiike.presentation.new_trip.as_passenger.FindNewTripPassenger
+import com.joblessrn.hitchhiike.presentation.new_trip.NewTripViewModel
+import com.joblessrn.hitchhiike.presentation.new_trip.as_driver.PostTripFrom
+import com.joblessrn.hitchhiike.presentation.new_trip.as_passenger.FindTrip
+import com.joblessrn.hitchhiike.presentation.new_trip.as_passenger.TripsList
 
 @Composable
 fun NavGraph(navController: NavHostController) {
@@ -23,14 +28,28 @@ fun NavGraph(navController: NavHostController) {
             route = Route.NewTripTab.route,
             startDestination = Route.NewTripTab.NewTripScreen.route
         ) {
+
             composable(route = Route.NewTripTab.NewTripScreen.route) {
-                NewTripScreen(nav = navController)
+                val newTripViewModel = it.sharedVM<NewTripViewModel>(navController = navController)
+                NewTripScreen(nav = navController,newTripViewModel)
             }
-            composable(route = Route.NewTripTab.NewTripPassenger.route) {
-                FindNewTripPassenger()
+            composable(route = Route.NewTripTab.FindTrip.route) {
+                val newTripViewModel = it.sharedVM<NewTripViewModel>(navController = navController)
+                FindTrip{
+                    navController.navigate(Route.NewTripTab.TripsList.route)
+                }
             }
-            composable(route = Route.NewTripTab.NewTripDriver.route) {
-                PostTripDriver()
+            composable(route = Route.NewTripTab.PostTrip.route) {
+                val newTripViewModel = it.sharedVM<NewTripViewModel>(navController = navController)
+                PostTripFrom(
+                    onNextClick = {
+                       navController.navigate("")     //ДОДЕЛАТЬ ЭТО
+                    },
+                    vm = newTripViewModel
+                )
+            }
+            composable(route = Route.NewTripTab.TripsList.route) {
+                TripsList()
             }
         }
 
@@ -51,6 +70,15 @@ fun NavGraph(navController: NavHostController) {
             }
         }
     }
+}
+
+@Composable
+inline fun <reified T:ViewModel> NavBackStackEntry.sharedVM(navController: NavController):T{
+    val navGraphRoute = destination.parent?.route ?: return viewModel()
+    val parentEntry = remember(this){
+        navController.getBackStackEntry(navGraphRoute)
+    }
+    return viewModel(parentEntry)
 }
 
 

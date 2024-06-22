@@ -1,9 +1,19 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.jetbrainsKotlinAndroid)
     id("com.google.gms.google-services")
+    id("com.google.android.libraries.mapsplatform.secrets-gradle-plugin")
 }
 
+val localProperties = Properties()
+val localPropertiesFile = rootProject.file("local.properties")
+if(localPropertiesFile.exists()) {
+    localPropertiesFile.inputStream().use {
+        localProperties.load(it)
+    }
+}
 android {
     namespace = "com.joblessrn.hitchhiike"
     compileSdk = 34
@@ -19,6 +29,22 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
+
+        buildConfigField(
+            type = "String",
+            name = "GEO_KEY",
+            value = localProperties["GEOCODER_APIKEY"].toString()
+        )
+        buildConfigField(
+            type = "String",
+            name = "MAPS_KEY",
+            value = localProperties["MAPS_APIKEY"].toString()
+        )
+        buildConfigField(
+            type = "String",
+            name = "GEOSUGGEST_KEY",
+            value = localProperties["GEOSUGGEST_APIKEY"].toString()
+        )
     }
 
     buildTypes {
@@ -39,6 +65,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.1"
@@ -86,4 +113,7 @@ dependencies {
     //retrofit
     implementation("com.squareup.retrofit2:retrofit:2.9.0")
     implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+
+    //yandexmaps
+    implementation ("com.yandex.android:maps.mobile:4.6.1-full")
 }

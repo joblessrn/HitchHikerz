@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDefaults
 import androidx.compose.material3.DatePickerDialog
@@ -48,12 +47,12 @@ import com.joblessrn.hitchhiike.ui.theme.Purple80
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
-import java.time.format.DateTimeFormatter
-import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun FindNewTripPassenger() {
+fun FindTrip(
+    onFindClick:(TripToFind)->Unit
+) {
     Box(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier
             .border(2.dp, Color.LightGray, RoundedCornerShape(25.dp))
@@ -110,7 +109,9 @@ fun FindNewTripPassenger() {
                 DateButton(onClick = { showDatePicker = true},
                            date = date)
 
-                NiceButton(onClick = { /*TODO*/ },text = "Найти")
+                NiceButton(onClick = {
+                                     onFindClick(TripToFind(from = from,to = to,seats = seats, date = date))
+                                     },text = "Найти")
             }
 
             if (showDatePicker) {
@@ -172,6 +173,6 @@ fun LocalDate.toEpochMilli(): Long {
 @Preview(showBackground = true,
     showSystemUi = true)
 @Composable
-fun findTripPreview(){
-    FindNewTripPassenger()
+fun FindTripPreview(){
+    FindTrip({})
 }
