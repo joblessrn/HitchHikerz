@@ -30,7 +30,6 @@ import com.joblessrn.hitchhiike.presentation.app_screen.components.NiceButton
 import com.joblessrn.hitchhiike.presentation.app_screen.components.TextFieldWithSuggestions
 import com.joblessrn.hitchhiike.presentation.new_trip.NewTripViewModel
 import com.yandex.mapkit.MapKitFactory
-import com.yandex.mapkit.geometry.Point
 import com.yandex.mapkit.map.CameraPosition
 import com.yandex.mapkit.map.VisibleRegion
 import com.yandex.mapkit.mapview.MapView
@@ -42,12 +41,11 @@ fun PostTripFrom(
     vm: NewTripViewModel,
     onNextClick: () -> Unit
 ) {
-
     LaunchedEffect(Unit) {
-        vm.getSuggests()
+        vm.observeSuggestions()
+        vm.observeCoordinates()
     }
 
-    // Stop observing when the composable leaves the composition
     DisposableEffect(Unit) {
         onDispose {
             vm.stopObservingQuery()
@@ -60,23 +58,21 @@ fun PostTripFrom(
         var city by remember {
             mutableStateOf("")
         }
-        val context1 = LocalContext.current
-        var mapView by remember { mutableStateOf<MapView>(MapView(context1)) }
-        val searchManager =
-            remember { SearchFactory.getInstance().createSearchManager(SearchManagerType.COMBINED) }
-        val startingPoint = remember { mutableStateOf(Point(0.0, 0.0)) }
+        val context = LocalContext.current
+        var mapView by remember { mutableStateOf(MapView(context)) }
+        val searchManager = remember { SearchFactory.getInstance().createSearchManager(SearchManagerType.COMBINED) }
+        val positionState =  vm.coordinateState
         val region = remember { mutableStateOf<VisibleRegion?>(null) }
-        var cityName by remember {
-            mutableStateOf("")
-        }
-        MapKitFactory.initialize(context1)
+        var cityName by remember { mutableStateOf("") }
+
+        MapKitFactory.initialize(context)
         AndroidView(
-            factory = { contexto ->
+            factory = {
                 MapKitFactory.getInstance().onStart()
-                mapView = MapView(contexto)
+                mapView = MapView(context)
                 mapView.apply {
                     mapView = this
-                    map.move(CameraPosition(Point(54.901171, 52.297230), 4.0f, 0.0f, 0.0f))
+                    map.move(CameraPosition(positionState.value, 6.0f, 0.0f, 0.0f))
                     //map.addInputListener(inputListener)
                 }
 
@@ -84,6 +80,9 @@ fun PostTripFrom(
             modifier = Modifier.fillMaxSize()
         )
 
+        LaunchedEffect(positionState.value) {
+            mapView.map?.move(CameraPosition(positionState.value, 12.0f, 0.0f, 0.0f))
+        }
         Row(
             modifier = Modifier
                 .padding(10.dp)
@@ -106,7 +105,6 @@ fun PostTripFrom(
             TextFieldWithSuggestions(
                 placeholder = "Введите название города",
                 textFieldModifier = Modifier
-                    .fillMaxWidth()
                     .padding(10.dp),
                 suggestionsModifier = Modifier
                     .padding(horizontal = 10.dp)
@@ -123,6 +121,10 @@ fun PostTripFrom(
                 suggestionsState = vm.suggestState,
                 getSuggestions = {
                     vm.updateQuery(it)
+                },
+                onSuggestionClick = {
+                    vm.updatePlace(it)
+                    vm.trip = vm.trip.copy(fromCity = it)
                 }
             )
             NiceButton(text = "Дальше") {

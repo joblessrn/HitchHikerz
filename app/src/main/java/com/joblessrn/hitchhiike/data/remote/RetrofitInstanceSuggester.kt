@@ -15,29 +15,33 @@ object RetrofitInstanceSuggester {
         .registerTypeAdapter(Suggests::class.java, SuggestsDeserializer())
         .create()
 
-    val retrofit = Retrofit.Builder()
-        .baseUrl("https://suggest-maps.yandex.ru/v1/")
-        .addConverterFactory(GsonConverterFactory.create(gson))
-        .build()
-        .create(SuggestsAPI::class.java)
+    val retrofit by lazy {
+        Retrofit.Builder()
+            .baseUrl("https://suggest-maps.yandex.ru/v1/")
+            .addConverterFactory(GsonConverterFactory.create(gson))
+            .build()
+            .create(SuggestsAPI::class.java)
+    }
 }
+
 class SuggestsDeserializer : JsonDeserializer<Suggests> {
     override fun deserialize(
         json: JsonElement?,
         typeOfT: Type?,
         context: JsonDeserializationContext?
     ): Suggests {
-        val jsonObject = json?.asJsonObject
-        val resultsArray = jsonObject?.getAsJsonArray("results")
-        val filteredResults = resultsArray?.mapNotNull { resultElement ->
-            val resultObject = resultElement.asJsonObject
-            val tagsArray = resultObject.getAsJsonArray("tags")
-            if (tagsArray?.contains(JsonPrimitive("locality")) == true) {
-                resultObject.getAsJsonObject("title").get("text").asString
-            } else {
-                null
+        val filteredResults = json
+            ?.asJsonObject
+            ?.getAsJsonArray("results")
+            ?.mapNotNull { resultElement ->
+                val resultObject = resultElement.asJsonObject
+                val tagsArray = resultObject.getAsJsonArray("tags")
+                if (tagsArray?.contains(JsonPrimitive("locality")) == true) {
+                    resultObject.getAsJsonObject("title").get("text").asString
+                } else {
+                    null
+                }
             }
-        }
         return Suggests(filteredResults ?: emptyList())
     }
 }

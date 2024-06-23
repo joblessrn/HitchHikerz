@@ -37,6 +37,7 @@ fun TextFieldWithSuggestions(
     placeholder: String,
     textFieldModifier: Modifier,
     suggestionsModifier: Modifier,
+    onSuggestionClick:(String)->Unit,
     getSuggestions: (String) -> Unit,
     suggestionsState: State<Suggests>
 ) {
@@ -87,6 +88,7 @@ fun TextFieldWithSuggestions(
                                         selection = TextRange(newText.length)
                                     )
                                     expanded = false
+                                    onSuggestionClick(suggestionsState.value.hints[it])
                                 }
                         )
                     }
@@ -106,6 +108,7 @@ fun textFieldPreview(){
         getSuggestions ={} ,
         suggestionsState = remember {
             mutableStateOf(Suggests(listOf("1324","123432","4567")))
-        }
+        },
+        onSuggestionClick = {}
     )
 }

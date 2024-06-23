@@ -5,27 +5,31 @@ import com.google.gson.GsonBuilder
 import com.google.gson.JsonDeserializationContext
 import com.google.gson.JsonDeserializer
 import com.google.gson.JsonElement
+import com.yandex.mapkit.geometry.Point
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.lang.reflect.Type
 
-object RetrofitInstance {
+object RetrofitInstanceGeocoder {
+
     val gson  = GsonBuilder()
-        .registerTypeAdapter(String::class.java,MyDeserializer2())
+        .registerTypeAdapter(Point::class.java,MyDeserializer2())
         .create()
 
-    val retrofit = Retrofit.Builder()
-        .baseUrl("https://geocode-maps.yandex.ru/")
-        .addConverterFactory(GsonConverterFactory.create(gson))
-        .build()
-        .create(GeocodeAPI::class.java)
+    val retrofit by lazy{
+        Retrofit.Builder()
+            .baseUrl("https://geocode-maps.yandex.ru/")
+            .addConverterFactory(GsonConverterFactory.create(gson))
+            .build()
+            .create(GeocodeAPI::class.java)
+    }
 }
-class MyDeserializer2 : JsonDeserializer<String> {
+class MyDeserializer2 : JsonDeserializer<Point?> {
     override fun deserialize(
         json: JsonElement?,
         typeOfT: Type?,
         context: JsonDeserializationContext?
-    ): String {
+    ): Point? {
         val responseData = json?.asJsonObject?.getAsJsonObject("response")
             ?.getAsJsonObject("GeoObjectCollection")
             ?.getAsJsonArray("featureMember")
@@ -34,16 +38,14 @@ class MyDeserializer2 : JsonDeserializer<String> {
                 .getAsJsonObject("GeoObject")
                 .getAsJsonObject("Point")
                 .get("pos").asString
-            Log.d("Tagger","poin1 = ${point}")
-            return reversePoint(point)
-
+            return stringToPoint(point)
         }
-        return "Что то не так"
+        return null
     }
 
-    fun reversePoint(point:String):String{
+    private fun stringToPoint(point:String):Point{
         val parts = point.split(" ", limit = 2)
-        return "${parts[1]} ${parts[0]}"
+        return Point(parts[1].toDouble(),parts[0].toDouble())
     }
 }
 
