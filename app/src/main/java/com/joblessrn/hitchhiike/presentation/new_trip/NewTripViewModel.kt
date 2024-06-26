@@ -1,6 +1,5 @@
 package com.joblessrn.hitchhiike.presentation.new_trip
 
-import android.util.Log
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
@@ -18,19 +17,19 @@ import kotlinx.coroutines.launch
 
 class NewTripViewModel : ViewModel() {
 
-    var trip = TripToPost()
+    var tripToPost = TripToPost()
 
     private val _suggestState = mutableStateOf(Suggests(emptyList()))
     val suggestState: State<Suggests> = _suggestState
     private var suggestsJob: Job? = null
     private val _query = MutableStateFlow("")
 
-    private val _coordinateState = mutableStateOf(Point(43.115111, 131.885376))
+    private val _coordinateState = mutableStateOf(Point(55.755799, 37.617617))
     val coordinateState: State<Point> = _coordinateState
     private val placeToSearch = MutableStateFlow("")
     private var coordinatesJob: Job? = null
 
-    fun observeSuggestions() {
+    fun observeSuggestions(whatToObserve:ObservingObject) {
         suggestsJob?.cancel()
         suggestsJob = viewModelScope.launch {
             _query
@@ -38,13 +37,27 @@ class NewTripViewModel : ViewModel() {
                 .distinctUntilChanged()
                 .collect { prompt ->
                     if (prompt.isNotEmpty()) {
-                        _suggestState.value =
-                            RetrofitInstanceSuggester.retrofit.getCitySuggests(place = prompt)
+                        when(whatToObserve){
+                            ObservingObject.LOCALITY -> {
+                                _suggestState.value =
+                                    RetrofitInstanceSuggester.retrofit.getCitySuggests(place = prompt)
+                            }
+                            ObservingObject.ADDRESS -> {
+                                _suggestState.value =
+                                    RetrofitInstanceSuggester.retrofit.getAddressSuggests(place = prompt)
+                            }
+                        }
+
                     } else _suggestState.value = Suggests(emptyList())
                 }
         }
     }
 
+    fun clearSuggestionsStopObserving(){
+        _suggestState.value = Suggests(emptyList())
+        _query.value = ""
+        suggestsJob?.cancel()
+    }
     fun stopObservingQuery() {
         suggestsJob?.cancel()
     }
@@ -71,5 +84,10 @@ class NewTripViewModel : ViewModel() {
     fun updatePlace(place: String) {
         placeToSearch.value = place
     }
+}
+
+enum class ObservingObject{
+    LOCALITY,
+    ADDRESS
 }
 

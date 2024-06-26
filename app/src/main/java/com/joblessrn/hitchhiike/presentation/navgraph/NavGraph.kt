@@ -16,7 +16,8 @@ import com.joblessrn.hitchhiike.presentation.archived_trips.ArchivedTripsScreen
 import com.joblessrn.hitchhiike.presentation.dialogs.DialogsScreen
 import com.joblessrn.hitchhiike.presentation.new_trip.NewTripScreen
 import com.joblessrn.hitchhiike.presentation.new_trip.NewTripViewModel
-import com.joblessrn.hitchhiike.presentation.new_trip.as_driver.PostTripFrom
+import com.joblessrn.hitchhiike.presentation.new_trip.as_driver.MapScreen
+import com.joblessrn.hitchhiike.presentation.new_trip.as_driver.NewTripForm
 import com.joblessrn.hitchhiike.presentation.new_trip.as_passenger.FindTrip
 import com.joblessrn.hitchhiike.presentation.new_trip.as_passenger.TripsList
 
@@ -41,7 +42,7 @@ fun NavGraph(navController: NavHostController) {
             }
             composable(route = Route.NewTripTab.PostTrip.route) {
                 val newTripViewModel = it.sharedVM<NewTripViewModel>(navController = navController)
-                PostTripFrom(
+                MapScreen(
                     onNextClick = {
                        navController.navigate("")     //ДОДЕЛАТЬ ЭТО
                     },
@@ -50,6 +51,10 @@ fun NavGraph(navController: NavHostController) {
             }
             composable(route = Route.NewTripTab.TripsList.route) {
                 TripsList()
+            }
+            composable(route = Route.NewTripTab.NewTripForm.route) {
+                val newTripViewModel = it.sharedVM<NewTripViewModel>(navController = navController)
+                NewTripForm(vm = newTripViewModel)
             }
         }
 

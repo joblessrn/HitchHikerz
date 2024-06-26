@@ -35,12 +35,12 @@ class SuggestsDeserializer : JsonDeserializer<Suggests> {
             ?.getAsJsonArray("results")
             ?.mapNotNull { resultElement ->
                 val resultObject = resultElement.asJsonObject
-                val tagsArray = resultObject.getAsJsonArray("tags")
-                if (tagsArray?.contains(JsonPrimitive("locality")) == true) {
+                //val tagsArray = resultObject.getAsJsonArray("tags")
+                //if (tagsArray?.contains(JsonPrimitive("locality")) == true) {
                     resultObject.getAsJsonObject("title").get("text").asString
-                } else {
-                    null
-                }
+                //} else {
+                    //null
+                //}
             }
         return Suggests(filteredResults ?: emptyList())
     }

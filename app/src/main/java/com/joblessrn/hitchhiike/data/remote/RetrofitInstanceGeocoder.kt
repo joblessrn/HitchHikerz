@@ -1,6 +1,5 @@
 package com.joblessrn.hitchhiike.data.remote
 
-import android.util.Log
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonDeserializationContext
 import com.google.gson.JsonDeserializer
@@ -13,7 +12,7 @@ import java.lang.reflect.Type
 object RetrofitInstanceGeocoder {
 
     val gson  = GsonBuilder()
-        .registerTypeAdapter(Point::class.java,MyDeserializer2())
+        .registerTypeAdapter(Point::class.java,GeocodeDeserializer())
         .create()
 
     val retrofit by lazy{
@@ -24,7 +23,7 @@ object RetrofitInstanceGeocoder {
             .create(GeocodeAPI::class.java)
     }
 }
-class MyDeserializer2 : JsonDeserializer<Point?> {
+class GeocodeDeserializer : JsonDeserializer<Point?> {
     override fun deserialize(
         json: JsonElement?,
         typeOfT: Type?,

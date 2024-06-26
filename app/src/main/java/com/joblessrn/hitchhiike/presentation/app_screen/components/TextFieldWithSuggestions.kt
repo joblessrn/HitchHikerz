@@ -17,6 +17,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusState
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -37,17 +39,19 @@ fun TextFieldWithSuggestions(
     placeholder: String,
     textFieldModifier: Modifier,
     suggestionsModifier: Modifier,
-    onSuggestionClick:(String)->Unit,
+    onSuggestionClick: (String) -> Unit,
     getSuggestions: (String) -> Unit,
-    suggestionsState: State<Suggests>
+    suggestionsState: State<Suggests>,
+    onFocusChange: (FocusState) -> Unit = {},
+    initialValue:String = ""
 ) {
     var textFieldSize by remember { mutableStateOf(Size.Zero) }
-    var prompt by remember { mutableStateOf(TextFieldValue("")) }
+    var prompt by remember { mutableStateOf(TextFieldValue(initialValue)) }
     var expanded by remember { mutableStateOf(false) }
-
+    var isFocused by remember{mutableStateOf(false)}
     Column {
         OutlinedTextField(
-            shape = if (expanded) RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
+            shape = if (expanded && isFocused) RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
             else RoundedCornerShape(20.dp),
             textStyle = TextStyle(fontSize = 18.sp),
             placeholder = { Text(text = placeholder, color = Color.LightGray) },
@@ -57,21 +61,27 @@ fun TextFieldWithSuggestions(
             value = prompt,
             onValueChange = { query ->
                 prompt = query
-                getSuggestions(query.text)
-                expanded = suggestionsState.value.hints.isNotEmpty()
+                if(query.text.isNotEmpty()){
+                    getSuggestions(query.text)
+                }
+                expanded = suggestionsState.value.hints.isNotEmpty() && prompt.text != ""
             },
             modifier = textFieldModifier
                 .onGloballyPositioned {
                     textFieldSize = it.size.toSize()
+                }
+                .onFocusChanged { focusState ->
+                    isFocused = focusState.isFocused
+                    onFocusChange(focusState)
                 })
-        if (expanded) {
+        if (expanded && isFocused) {
             Popup(
                 alignment = Alignment.TopStart,
                 offset = IntOffset(0, textFieldSize.height.toInt())
             ) {
                 LazyColumn(
                     modifier = suggestionsModifier
-                        .width(with(LocalDensity.current){
+                        .width(with(LocalDensity.current) {
                             textFieldSize.width.toDp()
                         })
                 ) {
@@ -97,17 +107,20 @@ fun TextFieldWithSuggestions(
         }
     }
 }
-@Preview(showBackground = true,
-    showSystemUi = true)
+
+@Preview(
+    showBackground = true,
+    showSystemUi = true
+)
 @Composable
-fun textFieldPreview(){
+fun textFieldPreview() {
     TextFieldWithSuggestions(
         placeholder = "",
         textFieldModifier = Modifier,
-        suggestionsModifier = Modifier ,
-        getSuggestions ={} ,
+        suggestionsModifier = Modifier,
+        getSuggestions = {},
         suggestionsState = remember {
-            mutableStateOf(Suggests(listOf("1324","123432","4567")))
+            mutableStateOf(Suggests(listOf("1324", "123432", "4567")))
         },
         onSuggestionClick = {}
     )

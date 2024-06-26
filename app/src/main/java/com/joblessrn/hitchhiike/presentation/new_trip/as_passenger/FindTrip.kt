@@ -1,6 +1,5 @@
 package com.joblessrn.hitchhiike.presentation.new_trip.as_passenger
 
-import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -38,7 +37,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.joblessrn.hitchhiike.R
 import com.joblessrn.hitchhiike.presentation.app_screen.components.DateButton
-import com.joblessrn.hitchhiike.presentation.app_screen.components.NiceButton
+import com.joblessrn.hitchhiike.presentation.app_screen.components.NiceTextButton
 import com.joblessrn.hitchhiike.presentation.app_screen.components.NiceTextField
 import com.joblessrn.hitchhiike.ui.theme.Pink40
 import com.joblessrn.hitchhiike.ui.theme.Purple40
@@ -74,10 +73,12 @@ fun FindTrip(
 
             NiceTextField(value = from,
                 onValueChange = { from = it },
-                placeholder = "Откуда")
+                placeholder = "Откуда",
+                modifier = Modifier)
             NiceTextField(value = to,
                 onValueChange = { to = it },
-                placeholder = "Куда")
+                placeholder = "Куда",
+                modifier = Modifier)
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     painter = painterResource(id = R.drawable.seat_icon),
@@ -109,7 +110,7 @@ fun FindTrip(
                 DateButton(onClick = { showDatePicker = true},
                            date = date)
 
-                NiceButton(onClick = {
+                NiceTextButton(onClick = {
                                      onFindClick(TripToFind(from = from,to = to,seats = seats, date = date))
                                      },text = "Найти")
             }
@@ -132,10 +133,8 @@ fun FindTrip(
                                         "Нужно выбрать дату не раньше сегодняшнего дня",
                                         Toast.LENGTH_SHORT
                                     ).show()
-                                    Log.d("Tagger", "${date}")
                                 }else{
                                     date = selectedDate
-                                    Log.d("Tagger", "${date}")
                                     showDatePicker = false
                                 }
                             }

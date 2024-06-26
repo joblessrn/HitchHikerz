@@ -20,7 +20,14 @@ interface SuggestsAPI {
     suspend fun getCitySuggests(
         @Query("text") place: String,
         @Query("types") types:String = "locality",
-        @Query("results") results:Int = 3,
+        @Query("results") results:Int = 4,
+        @Query("apikey") apikey:String = Utility.suggests_key
+    ): Suggests
+    @GET("suggest")
+    suspend fun getAddressSuggests(
+        @Query("text") place: String,
+        @Query("types") types:String = "street,house,biz,metro",
+        @Query("results") results:Int = 4,
         @Query("apikey") apikey:String = Utility.suggests_key
     ): Suggests
 }

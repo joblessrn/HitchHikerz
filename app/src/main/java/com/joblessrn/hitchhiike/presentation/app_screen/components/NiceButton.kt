@@ -2,7 +2,6 @@ package com.joblessrn.hitchhiike.presentation.app_screen.components
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonColors
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -11,7 +10,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 
 @Composable
-fun NiceButton(
+fun NiceTextButton(
     text: String,
     onClick:()->Unit
 ) {
@@ -35,5 +34,5 @@ fun NiceButton(
     showBackground = true
 )
 fun NiceButtonPreview() {
-    NiceButton("text",{})
+    NiceTextButton("text",{})
 }
