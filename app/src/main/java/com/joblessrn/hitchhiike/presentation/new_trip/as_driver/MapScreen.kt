@@ -7,12 +7,11 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -26,13 +25,17 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.navigation.NavController
 import com.joblessrn.hitchhiike.R
-import com.joblessrn.hitchhiike.presentation.app_screen.components.NiceTextButton
+import com.joblessrn.hitchhiike.data.remote.Coordinate
 import com.joblessrn.hitchhiike.presentation.app_screen.components.TextFieldWithSuggestions
 import com.joblessrn.hitchhiike.presentation.new_trip.NewTripViewModel
-import com.joblessrn.hitchhiike.presentation.new_trip.ObservingObject
+import com.joblessrn.hitchhiike.presentation.new_trip.ObservingDestination
 import com.yandex.mapkit.MapKitFactory
 import com.yandex.mapkit.geometry.Point
 import com.yandex.mapkit.map.CameraListener
@@ -40,7 +43,6 @@ import com.yandex.mapkit.map.CameraPosition
 import com.yandex.mapkit.map.CameraUpdateReason
 import com.yandex.mapkit.map.InputListener
 import com.yandex.mapkit.map.Map
-import com.yandex.mapkit.map.VisibleRegion
 import com.yandex.mapkit.mapview.MapView
 import com.yandex.mapkit.search.Address
 import com.yandex.mapkit.search.Response
@@ -55,39 +57,43 @@ import com.yandex.runtime.Error
 @Composable
 fun MapScreen(
     vm: NewTripViewModel,
-    onNextClick: () -> Unit
+    nav: NavController,
+    searchType: ObservingDestination
 ) {
+
+    Log.d("tagg", "searchtype = ${searchType}")
     LaunchedEffect(Unit) {
-        vm.observeSuggestions(ObservingObject.ADDRESS)
+        vm.observeSuggestions(searchType)
         vm.observeCoordinates()
     }
 
     DisposableEffect(Unit) {
         onDispose {
-            vm.stopObservingQuery()
+            vm.clearSuggestionsStopObserving()
         }
     }
     Box(
         modifier = Modifier
             .fillMaxSize()
     ) {
-        var city by remember {
-            mutableStateOf("")
+        var textForTextField = remember { mutableStateOf(TextFieldValue("")) }
+        var tripInfo by remember {
+            mutableStateOf(TripToPost())
         }
         val context = LocalContext.current
         var mapView by remember { mutableStateOf(MapView(context)) }
-        val searchManager = remember { SearchFactory.getInstance().createSearchManager(SearchManagerType.COMBINED) }
+        val searchManager =
+            remember { SearchFactory.getInstance().createSearchManager(SearchManagerType.COMBINED) }
         val positionState = vm.coordinateState
-        val region = remember { mutableStateOf<VisibleRegion?>(null) }
-        var cityName by remember { mutableStateOf("") }
-        var showSuggestions by remember {mutableStateOf(true)}
+        var showDoneButton by remember { mutableStateOf(false) }
 
         val inputListener = remember {
             object : InputListener {
                 override fun onMapTap(map: Map, point: Point) {
                     Log.d("TAGG", "lat = ${point.latitude}, long = ${point.longitude}")
 
-                    val searchManager = SearchFactory.getInstance().createSearchManager(SearchManagerType.ONLINE)
+                    val searchManager =
+                        SearchFactory.getInstance().createSearchManager(SearchManagerType.ONLINE)
                     searchManager.createSuggestSession()
                     val searchOptions = SearchOptions().apply {
                         searchTypes = SearchType.GEO.value
@@ -100,20 +106,22 @@ fun MapScreen(
                         searchOptions,
                         object : Session.SearchListener {
                             override fun onSearchResponse(response: Response) {
-                                val topLevelAddress = response.collection.children.firstOrNull()?.obj?.metadataContainer?.getItem(
-                                    ToponymObjectMetadata::class.java)?.address
+                                val topLevelAddress =
+                                    response.collection.children.firstOrNull()?.obj?.metadataContainer?.getItem(
+                                        ToponymObjectMetadata::class.java
+                                    )?.address
 
                                 val addressComponents = topLevelAddress?.components
 
-                                Log.d("tagg","${addressComponents}")
+                                Log.d("tagg", "${addressComponents}")
                                 var country: String? = null
-                                var province:String? = null
+                                var province: String? = null
                                 var region: String? = null
                                 var area: String? = null
                                 var city: String? = null
                                 var street: String? = null
                                 var house: String? = null
-                                var metroStation:String? = null
+                                var metroStation: String? = null
 
 
                                 addressComponents?.forEach { component ->
@@ -133,7 +141,9 @@ fun MapScreen(
                                         Address.Component.Kind.APARTMENT -> {}
                                         Address.Component.Kind.ROUTE -> {}
                                         Address.Component.Kind.STATION -> {}
-                                        Address.Component.Kind.METRO_STATION -> metroStation = component.name
+                                        Address.Component.Kind.METRO_STATION -> metroStation =
+                                            component.name
+
                                         Address.Component.Kind.RAILWAY_STATION -> {}
                                         Address.Component.Kind.VEGETATION -> {}
                                         Address.Component.Kind.HYDRO -> {}
@@ -142,7 +152,10 @@ fun MapScreen(
                                     }
                                 }
 
-                                Log.d("tagg","adres = ${country}, ${area}, ${region}, ${province}, $city, $street, $house")
+                                Log.d(
+                                    "tagg",
+                                    "adres = ${country}, ${area}, ${region}, ${province}, $city, $street, $house"
+                                )
 
                             }
 
@@ -152,83 +165,201 @@ fun MapScreen(
                         }
                     )
                 }
+
                 override fun onMapLongTap(map: Map, point: Point) {}
             }
         }
-        val listener = object: CameraListener{
-            override fun onCameraPositionChanged(
-                p0: Map,
-                p1: CameraPosition,
-                p2: CameraUpdateReason,
-                p3: Boolean
-            ) {
-                //Log.d("tagg","Started moving")
-                if(p3 && p2 == CameraUpdateReason.GESTURES){
-                    //Log.d("tagg","Stopped moving")
-                    Log.d("tagg","campos = ${p1.target.latitude}, ${p1.target.longitude}")
-                    val searchOptions = SearchOptions().apply {
-                        searchTypes = SearchType.GEO.value
-                        geometry = true
-                    }
-                    searchManager.submit(
-                        Point(p1.target.latitude,p1.target.longitude),
-                        0,
-                        searchOptions,
-                        object : Session.SearchListener {
-                            override fun onSearchResponse(response: Response) {
-                                val topLevelAddress = response.collection.children.firstOrNull()?.obj?.metadataContainer?.getItem(
-                                    ToponymObjectMetadata::class.java)?.address
 
-                                val addressComponents = topLevelAddress?.components
 
-                                var country: String? = null
-                                var province:String? = null
-                                var region: String? = null
-                                var area: String? = null
-                                var city: String? = null
-                                var street: String? = null
-                                var house: String? = null
-                                var metroStation:String? = null
-                                var airport:String? = null
-                                var railwayStation:String? = null
+        val listener = remember{
+            object : CameraListener {
+                override fun onCameraPositionChanged(
+                    p0: Map,
+                    p1: CameraPosition,
+                    p2: CameraUpdateReason,
+                    p3: Boolean
+                ) {
+                    Log.d("tagg", "campos = ${p1.target.latitude}, ${p1.target.longitude}")
+                    if (p3 && p2 == CameraUpdateReason.GESTURES) {
+                        //Log.d("tagg", "campos = ${p1.target.latitude}, ${p1.target.longitude}")
+                        val searchOptions = SearchOptions().apply {
+                            searchTypes = SearchType.GEO.value
+                            geometry = true
+                        }
+                        searchManager.submit(
+                            Point(p1.target.latitude, p1.target.longitude),
+                            0,
+                            searchOptions,
+                            object : Session.SearchListener {
+                                override fun onSearchResponse(response: Response) {
+                                    val topLevelAddress =
+                                        response.collection.children.firstOrNull()?.obj?.metadataContainer?.getItem(
+                                            ToponymObjectMetadata::class.java
+                                        )?.address
 
-                                addressComponents?.forEach { component ->
-                                    val kind = component.kinds.firstOrNull() ?: return@forEach
-                                    when (kind) {
-                                        Address.Component.Kind.UNKNOWN -> {}
-                                        Address.Component.Kind.COUNTRY -> country = component.name
-                                        Address.Component.Kind.REGION -> region = component.name
-                                        Address.Component.Kind.PROVINCE -> province = component.name
-                                        Address.Component.Kind.AREA -> area = component.name
-                                        Address.Component.Kind.LOCALITY -> city = component.name
-                                        Address.Component.Kind.DISTRICT -> {}
-                                        Address.Component.Kind.STREET -> street = component.name
-                                        Address.Component.Kind.HOUSE -> house = component.name
-                                        Address.Component.Kind.ENTRANCE -> {}
-                                        Address.Component.Kind.LEVEL -> {}
-                                        Address.Component.Kind.APARTMENT -> {}
-                                        Address.Component.Kind.ROUTE -> {}
-                                        Address.Component.Kind.STATION -> {}
-                                        Address.Component.Kind.METRO_STATION -> metroStation = component.name
-                                        Address.Component.Kind.RAILWAY_STATION -> railwayStation = component.name
-                                        Address.Component.Kind.VEGETATION -> {}
-                                        Address.Component.Kind.HYDRO -> {}
-                                        Address.Component.Kind.AIRPORT -> airport = component.name
-                                        Address.Component.Kind.OTHER -> {}
+                                    val addressComponents = topLevelAddress?.components
+
+                                    var country: String? = null
+                                    var province: String? = null
+                                    var region: String? = null
+                                    var area: String? = null
+                                    var city: String? = null
+                                    var street: String? = null
+                                    var house: String? = null
+                                    var metroStation: String? = null
+                                    var airport: String? = null
+                                    var railwayStation: String? = null
+
+                                    addressComponents?.forEach { component ->
+                                        val kind = component.kinds.firstOrNull() ?: return@forEach
+                                        when (kind) {
+                                            Address.Component.Kind.UNKNOWN -> {}
+                                            Address.Component.Kind.COUNTRY -> country = component.name
+                                            Address.Component.Kind.REGION -> region = component.name
+                                            Address.Component.Kind.PROVINCE -> province = component.name
+                                            Address.Component.Kind.AREA -> area = component.name
+                                            Address.Component.Kind.LOCALITY -> city = component.name
+                                            Address.Component.Kind.DISTRICT -> {}
+                                            Address.Component.Kind.STREET -> street = component.name
+                                            Address.Component.Kind.HOUSE -> house = component.name
+                                            Address.Component.Kind.ENTRANCE -> {}
+                                            Address.Component.Kind.LEVEL -> {}
+                                            Address.Component.Kind.APARTMENT -> {}
+                                            Address.Component.Kind.ROUTE -> {}
+                                            Address.Component.Kind.STATION -> {}
+                                            Address.Component.Kind.METRO_STATION -> metroStation =
+                                                component.name
+
+                                            Address.Component.Kind.RAILWAY_STATION -> railwayStation =
+                                                component.name
+
+                                            Address.Component.Kind.VEGETATION -> {}
+                                            Address.Component.Kind.HYDRO -> {}
+                                            Address.Component.Kind.AIRPORT -> airport = component.name
+                                            Address.Component.Kind.OTHER -> {}
+                                        }
+                                    }
+
+                                    val subjectOfCounty = province ?: region ?: area
+                                    val place = metroStation ?: railwayStation ?: street + house
+
+                                    when (searchType) {
+                                        ObservingDestination.FROM_LOCALITY -> {
+                                            Log.d("tagg", "gorod = $subjectOfCounty, $city")
+                                            if (!airport.isNullOrBlank()) {
+                                                tripInfo = tripInfo.copy(
+                                                    fromCity = airport!!,
+                                                    fromGeoTag = Coordinate(p1.target.latitude, p1.target.longitude)
+                                                )
+                                                textForTextField.value = TextFieldValue(
+                                                    text = airport!!,
+                                                    selection = TextRange(airport!!.length)
+                                                )
+                                                showDoneButton = true
+                                            } else if (!country.isNullOrBlank() && !subjectOfCounty.isNullOrBlank() && !city.isNullOrBlank()) {
+                                                tripInfo = tripInfo.copy(
+                                                    fromCountry = country!!,
+                                                    fromCity = city!!,
+                                                    fromGeoTag = Coordinate(p1.target.latitude, p1.target.longitude)
+                                                )
+                                                textForTextField.value = TextFieldValue(
+                                                    text = city!!,
+                                                    selection = TextRange(city!!.length)
+                                                )
+                                                showDoneButton = true
+                                            } else {
+                                                showDoneButton = false
+                                                textForTextField.value = TextFieldValue(
+                                                    text = ""
+                                                )
+                                            }
+                                        }
+
+                                        ObservingDestination.TO_LOCALITY -> {
+                                            Log.d("tagg", "gorod = $subjectOfCounty, $city")
+                                            if (!airport.isNullOrBlank()) {
+                                                tripInfo = tripInfo.copy(
+                                                    toCity = airport!!,
+                                                    toGeoTag = Coordinate(p1.target.latitude, p1.target.longitude)
+                                                )
+                                                textForTextField.value = TextFieldValue(
+                                                    text = airport!!,
+                                                    selection = TextRange(airport!!.length)
+                                                )
+                                                showDoneButton = true
+                                            } else if (!country.isNullOrBlank() && !subjectOfCounty.isNullOrBlank() && !city.isNullOrBlank()) {
+                                                tripInfo = tripInfo.copy(
+                                                    toCountry = country!!,
+                                                    toCity = city!!,
+                                                    toGeoTag = Coordinate(p1.target.latitude, p1.target.longitude)
+                                                )
+                                                textForTextField.value = TextFieldValue(
+                                                    text = city!!,
+                                                    selection = TextRange(city!!.length)
+                                                )
+                                                showDoneButton = true
+                                            } else {
+                                                showDoneButton = false
+                                                textForTextField.value = TextFieldValue(
+                                                    text = ""
+                                                )
+                                            }
+                                        }
+
+                                        ObservingDestination.FROM_ADDRESS -> {
+                                            Log.d("tagg", "from adress = ${street} $house")
+                                            if (!street.isNullOrBlank() && !house.isNullOrBlank()) {
+                                                tripInfo = tripInfo.copy(
+                                                    fromAddress = "${street}, $house",
+                                                    fromGeoTag = Coordinate(
+                                                        p1.target.latitude,
+                                                        p1.target.longitude
+                                                    )
+                                                )
+                                                textForTextField.value = TextFieldValue(
+                                                    text = "${street}, $house",
+                                                    selection = TextRange("${street}, $house".length)
+                                                )
+                                                showDoneButton = true
+                                            } else {
+                                                showDoneButton = false
+                                                textForTextField.value = TextFieldValue(
+                                                    text = ""
+                                                )
+                                            }
+                                        }
+
+                                        ObservingDestination.TO_ADDRESS -> {
+                                            Log.d("tagg", "from adress = ${street} $house")
+                                            if (!street.isNullOrBlank() && !house.isNullOrBlank()) {
+                                                tripInfo = tripInfo.copy(
+                                                    toAddress = "${street}, $house",
+                                                    fromGeoTag = Coordinate(
+                                                        p1.target.latitude,
+                                                        p1.target.longitude
+                                                    )
+                                                )
+                                                textForTextField.value = TextFieldValue(
+                                                    text = "${street}, $house",
+                                                    selection = TextRange("${street}, $house".length)
+                                                )
+                                                showDoneButton = true
+                                            } else {
+                                                showDoneButton = false
+                                                textForTextField.value = TextFieldValue(
+                                                    text = ""
+                                                )
+                                            }
+                                        }
                                     }
                                 }
-                                Log.d("tagg","adres = ${country}, ${region}, ${province},  ${area}, $city, $street, $house, $metroStation")
 
-                                val subjectOfCounty = province ?: region ?: area
-                                val place = metroStation ?: airport ?: railwayStation ?: "$street #$house"
-                                Log.d("tagg","adres = $country $subjectOfCounty $city $place ")
+                                override fun onSearchError(error: Error) {
+                                    Log.e("TAGG", "Error: $error")
+                                }
                             }
-
-                            override fun onSearchError(error: Error) {
-                                Log.e("TAGG", "Error: $error")
-                            }
-                        }
-                    )
+                        )
+                    }
                 }
             }
         }
@@ -259,18 +390,6 @@ fun MapScreen(
                 .align(Alignment.TopCenter),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(
-                onClick = { onNextClick() },
-                modifier = Modifier
-                    .padding(8.dp)
-                    .background(Color.White, shape = RoundedCornerShape(5.dp)),
-            ) {
-                Icon(
-                    imageVector = Icons.Default.ArrowBack,
-                    contentDescription = "Back",
-                    tint = Color.Black
-                )
-            }
             TextFieldWithSuggestions(
                 placeholder = "Откуда планируется поездка",
                 textFieldModifier = Modifier
@@ -292,17 +411,14 @@ fun MapScreen(
                     vm.updateQuery(it)
                 },
                 onSuggestionClick = {
-                    vm.updatePlace(it)
-                    vm.tripToPost = vm.tripToPost.copy(fromCity = it)
-                }
+                    //vm.updatePlace(it)
+                    vm.tripToPost.value = vm.tripToPost.value.copy(fromCity = it)
+                },
+                textFieldState = textForTextField,
             )
-            NiceTextButton(text = "Дальше") {
-                cityName = city
-            }
         }
-
         Box(
-            modifier = Modifier.align(Alignment.Center),
+            modifier = Modifier.align(Alignment.Center).offset((-20).dp),
             contentAlignment = Alignment.Center
         ) {
             // Your custom marker
@@ -311,6 +427,48 @@ fun MapScreen(
                 contentDescription = null
             )
         }
+        if (showDoneButton) {
+            IconButton(
+                onClick = {
+                    when (searchType) {
+                        ObservingDestination.FROM_LOCALITY -> {
+                            vm.tripToPost.value = vm.tripToPost.value.copy(
+                                fromCountry = tripInfo.fromCountry,
+                                fromCity = tripInfo.fromCity
+                            )
+                        }
 
+                        ObservingDestination.TO_LOCALITY -> {
+                            vm.tripToPost.value = vm.tripToPost.value.copy(
+                                toCountry = tripInfo.toCountry,
+                                toCity = tripInfo.toCity
+                            )
+                        }
+
+                        ObservingDestination.FROM_ADDRESS -> {
+                            vm.tripToPost.value = vm.tripToPost.value.copy(
+                                fromAddress = tripInfo.fromAddress,
+                                fromGeoTag = tripInfo.fromGeoTag
+                            )
+                        }
+
+                        ObservingDestination.TO_ADDRESS -> {
+                            vm.tripToPost.value = vm.tripToPost.value.copy(
+                                toAddress = tripInfo.toAddress,
+                                toGeoTag = tripInfo.toGeoTag
+                            )
+                        }
+                    }
+                    nav.popBackStack()
+                }, modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .background(Color.White)
+                    .padding(bottom = 20.dp)
+                    .fillMaxWidth(0.9F)
+                    .border(2.dp, Color.Black, RoundedCornerShape(20.dp))
+            ) {
+                Text(text = "Готово", fontSize = 30.sp)
+            }
+        }
     }
 }

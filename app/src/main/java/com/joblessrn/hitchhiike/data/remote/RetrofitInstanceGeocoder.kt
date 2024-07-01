@@ -12,7 +12,7 @@ import java.lang.reflect.Type
 object RetrofitInstanceGeocoder {
 
     val gson  = GsonBuilder()
-        .registerTypeAdapter(Point::class.java,GeocodeDeserializer())
+        .registerTypeAdapter(Coordinate::class.java,GeocodeDeserializer())
         .create()
 
     val retrofit by lazy{
@@ -23,12 +23,12 @@ object RetrofitInstanceGeocoder {
             .create(GeocodeAPI::class.java)
     }
 }
-class GeocodeDeserializer : JsonDeserializer<Point?> {
+class GeocodeDeserializer : JsonDeserializer<Coordinate?> {
     override fun deserialize(
         json: JsonElement?,
         typeOfT: Type?,
         context: JsonDeserializationContext?
-    ): Point? {
+    ): Coordinate? {
         val responseData = json?.asJsonObject?.getAsJsonObject("response")
             ?.getAsJsonObject("GeoObjectCollection")
             ?.getAsJsonArray("featureMember")
@@ -37,14 +37,19 @@ class GeocodeDeserializer : JsonDeserializer<Point?> {
                 .getAsJsonObject("GeoObject")
                 .getAsJsonObject("Point")
                 .get("pos").asString
-            return stringToPoint(point)
+            return stringToCoordinate(point)
         }
         return null
     }
 
-    private fun stringToPoint(point:String):Point{
+    private fun stringToCoordinate(point:String):Coordinate{
         val parts = point.split(" ", limit = 2)
-        return Point(parts[1].toDouble(),parts[0].toDouble())
+        return Coordinate(parts[1].toDouble(),parts[0].toDouble())
     }
 }
-
+data class Coordinate(
+    val latitude:Double,
+    val longitude:Double
+){
+    fun toPoint():Point = Point(latitude,longitude)
+}

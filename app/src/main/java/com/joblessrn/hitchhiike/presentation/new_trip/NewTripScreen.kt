@@ -11,12 +11,11 @@ import com.joblessrn.hitchhiike.presentation.app_screen.components.NiceTextButto
 import com.joblessrn.hitchhiike.presentation.navgraph.Route
 
 @Composable
-fun NewTripScreen(nav: NavController,
-                  vm:NewTripViewModel){
+fun NewTripScreen(nav: NavController){
     Box(modifier = Modifier.fillMaxSize()){
         Row(modifier = Modifier.align(Alignment.Center)) {
             NiceTextButton(text = "Как пассажир") {
-                nav.navigate(Route.NewTripTab.FindTrip.route)
+                nav.navigate(Route.NewTripTab.FindTripScreen.route)
             }
             NiceTextButton(text = "Как водитель") {
                 nav.navigate(Route.NewTripTab.NewTripForm.route)

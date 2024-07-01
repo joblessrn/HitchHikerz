@@ -2,6 +2,7 @@ package com.joblessrn.hitchhiike.presentation.app_screen.components
 
 import android.graphics.drawable.Icon
 import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -17,11 +18,22 @@ import com.joblessrn.hitchhiike.R
 @Composable
 fun NiceIconButton(
     onClick:()->Unit,
-    icon:Painter
+    icon:Painter,
+    iconInactive:Painter? = null,
+    enabled:Boolean = true
 ){
     IconButton(onClick = { onClick() },
-        modifier = Modifier.border(2.dp, Color.Black, RoundedCornerShape(12.dp))) {
-        Icon(painter = icon,contentDescription = "")
+        modifier = Modifier
+            .padding(5.dp)
+            .border(2.dp, Color.Black, RoundedCornerShape(12.dp)),
+        enabled = enabled) {
+        if(enabled){
+            Icon(painter = icon,contentDescription = "")
+        }else{
+            iconInactive?.let {
+                Icon(painter = it,contentDescription = "")
+            }
+        }
     }
 }
 

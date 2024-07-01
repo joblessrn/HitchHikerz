@@ -1,5 +1,6 @@
 package com.joblessrn.hitchhiike.presentation.app_screen.components
 
+import android.util.Log
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
@@ -10,6 +11,8 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -32,23 +35,29 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.toSize
 import androidx.compose.ui.window.Popup
+import com.joblessrn.hitchhiike.data.remote.models.Suggest
 import com.joblessrn.hitchhiike.data.remote.models.Suggests
 
 @Composable
 fun TextFieldWithSuggestions(
     placeholder: String,
     textFieldModifier: Modifier,
+    textFieldState:MutableState<TextFieldValue>,
     suggestionsModifier: Modifier,
     onSuggestionClick: (String) -> Unit,
     getSuggestions: (String) -> Unit,
     suggestionsState: State<Suggests>,
     onFocusChange: (FocusState) -> Unit = {},
-    initialValue:String = ""
+    enabled:Boolean = true
 ) {
     var textFieldSize by remember { mutableStateOf(Size.Zero) }
-    var prompt by remember { mutableStateOf(TextFieldValue(initialValue)) }
     var expanded by remember { mutableStateOf(false) }
-    var isFocused by remember{mutableStateOf(false)}
+    var isFocused by remember { mutableStateOf(false) }
+
+    LaunchedEffect(suggestionsState.value.hints) {
+        //Log.d("suggestss","suggestionsState = ${suggestionsState.value.hints}")
+        expanded = suggestionsState.value.hints.isNotEmpty() && isFocused
+    }
     Column {
         OutlinedTextField(
             shape = if (expanded && isFocused) RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
@@ -56,15 +65,19 @@ fun TextFieldWithSuggestions(
             textStyle = TextStyle(fontSize = 18.sp),
             placeholder = { Text(text = placeholder, color = Color.LightGray) },
             colors = OutlinedTextFieldDefaults.colors(
-                unfocusedContainerColor = Color.White
+                unfocusedContainerColor = Color.White,
+                disabledTextColor = Color.Gray,
+                disabledBorderColor = Color.LightGray,
+                disabledLabelColor = Color.LightGray,
+                disabledPlaceholderColor = Color.Gray
             ),
-            value = prompt,
-            onValueChange = { query ->
-                prompt = query
-                if(query.text.isNotEmpty()){
+            value = textFieldState.value,
+            onValueChange = { query:TextFieldValue ->
+                textFieldState.value = query
+                //if (query.text.isNotBlank()) {
                     getSuggestions(query.text)
-                }
-                expanded = suggestionsState.value.hints.isNotEmpty() && prompt.text != ""
+                //}
+
             },
             modifier = textFieldModifier
                 .onGloballyPositioned {
@@ -73,7 +86,9 @@ fun TextFieldWithSuggestions(
                 .onFocusChanged { focusState ->
                     isFocused = focusState.isFocused
                     onFocusChange(focusState)
-                })
+                },
+            enabled = enabled,
+            maxLines = 1)
         if (expanded && isFocused) {
             Popup(
                 alignment = Alignment.TopStart,
@@ -87,18 +102,18 @@ fun TextFieldWithSuggestions(
                 ) {
                     items(suggestionsState.value.hints.size) {
                         Text(
-                            text = suggestionsState.value.hints[it],
+                            text = suggestionsState.value.hints[it].place,
                             modifier = Modifier
                                 .padding(8.dp)
                                 .width(textFieldSize.width.toInt().dp)
                                 .clickable {
-                                    val newText = "${suggestionsState.value.hints[it]} "
-                                    prompt = TextFieldValue(
+                                    val newText = "${suggestionsState.value.hints[it].place} "
+                                    textFieldState.value = TextFieldValue(
                                         text = newText,
                                         selection = TextRange(newText.length)
                                     )
                                     expanded = false
-                                    onSuggestionClick(suggestionsState.value.hints[it])
+                                    onSuggestionClick(suggestionsState.value.hints[it].place)
                                 }
                         )
                     }
@@ -114,14 +129,18 @@ fun TextFieldWithSuggestions(
 )
 @Composable
 fun textFieldPreview() {
+    val text by remember {
+        mutableStateOf(TextFieldValue("234567"))
+    }
     TextFieldWithSuggestions(
-        placeholder = "",
-        textFieldModifier = Modifier,
+        placeholder = "1111111",
+        textFieldModifier = Modifier.width(180.dp),
         suggestionsModifier = Modifier,
         getSuggestions = {},
         suggestionsState = remember {
-            mutableStateOf(Suggests(listOf("1324", "123432", "4567")))
+            mutableStateOf(Suggests(listOf(Suggest("Kenia", "Monkey Town", "Ooga Booga"))))
         },
-        onSuggestionClick = {}
+        onSuggestionClick = {},
+        textFieldState = remember{mutableStateOf(text)}
     )
 }

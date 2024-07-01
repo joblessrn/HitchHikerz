@@ -1,26 +1,26 @@
 package com.joblessrn.hitchhiike.presentation.new_trip.as_driver
 
-import com.yandex.mapkit.geometry.Point
+import com.joblessrn.hitchhiike.data.remote.Coordinate
 import java.time.LocalDate
 
 data class TripToPost(
-    val fromCountry:String = "",
-    val fromRegion:String = "",
-    val fromCity:String = "",
-    val fromAddress:String = "",
-    val fromGeoTag: Point? = null,
-    val toCountry:String = "",
-    val toRegion:String = "",
-    val toCity:String = "",
-    val toAddress:String = "",
-    val toGeoTag:String = "",
-    val date: LocalDate = LocalDate.now(),
-    val seats:Int = 0,
-    val takenSeats:Int = 0,
-    val twoPassengersBack:Boolean = false,
-    val autoBrand:String = "",
-    val autoModel:String = "",
-    val animalsAllowed:Boolean = false,
-    val dopInfo:String = "",
-    val driverID:String = ""
+    var fromCountry:String = "",
+    var fromCity:String = "",
+    var fromAddress:String? = "",
+    var fromGeoTag: Coordinate? = null,
+    var toCountry:String = "",
+    var toCity:String = "",
+    var toAddress:String? = "",
+    var toGeoTag:Coordinate? = null,
+    var date: LocalDate = LocalDate.now(),
+    var time:String = "12:00",
+    var seats:Int = 1,
+    var takenSeats:Int = 0,
+    var twoPassengersBack:Boolean = false,
+    var autoBrand:String = "",
+    //val autoModel:String = "",
+    var animalsAllowed:Boolean = false,
+    var description:String = "",
+    var driverID:String = "zzzzzzzzzzz"
 )
+

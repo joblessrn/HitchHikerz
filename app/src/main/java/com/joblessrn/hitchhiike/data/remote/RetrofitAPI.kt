@@ -12,7 +12,7 @@ interface GeocodeAPI {
         @Query("apikey") apikey:String = Utility.geocoder_key,
         @Query("geocode") place: String,
         @Query("format") format: String = "json"
-    ):Point?
+    ):Coordinate?
 }
 
 interface SuggestsAPI {
@@ -20,14 +20,16 @@ interface SuggestsAPI {
     suspend fun getCitySuggests(
         @Query("text") place: String,
         @Query("types") types:String = "locality",
-        @Query("results") results:Int = 4,
+        @Query("results") results:Int = 7,
+        @Query("print_address") printAddress:Int = 1,
         @Query("apikey") apikey:String = Utility.suggests_key
     ): Suggests
     @GET("suggest")
     suspend fun getAddressSuggests(
         @Query("text") place: String,
-        @Query("types") types:String = "street,house,biz,metro",
-        @Query("results") results:Int = 4,
+        @Query("types") types:String = "house,biz,metro",
+        @Query("results") results:Int = 7,
+        @Query("print_address") printAddress:Int = 1,
         @Query("apikey") apikey:String = Utility.suggests_key
     ): Suggests
 }

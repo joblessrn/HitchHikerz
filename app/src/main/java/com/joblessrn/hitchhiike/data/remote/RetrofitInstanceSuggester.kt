@@ -5,6 +5,7 @@ import com.google.gson.JsonDeserializationContext
 import com.google.gson.JsonDeserializer
 import com.google.gson.JsonElement
 import com.google.gson.JsonPrimitive
+import com.joblessrn.hitchhiike.data.remote.models.Suggest
 import com.joblessrn.hitchhiike.data.remote.models.Suggests
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
@@ -30,18 +31,46 @@ class SuggestsDeserializer : JsonDeserializer<Suggests> {
         typeOfT: Type?,
         context: JsonDeserializationContext?
     ): Suggests {
-        val filteredResults = json
-            ?.asJsonObject
-            ?.getAsJsonArray("results")
-            ?.mapNotNull { resultElement ->
-                val resultObject = resultElement.asJsonObject
-                //val tagsArray = resultObject.getAsJsonArray("tags")
-                //if (tagsArray?.contains(JsonPrimitive("locality")) == true) {
-                    resultObject.getAsJsonObject("title").get("text").asString
-                //} else {
-                    //null
-                //}
+        val jsonObject = json?.asJsonObject
+        val results = jsonObject?.getAsJsonArray("results")
+
+        val suggests = mutableListOf<Suggest>()
+
+        if (results != null) {
+            for (result in results) {
+                val resultObject = result.asJsonObject
+
+                val title = resultObject.getAsJsonObject("title").get("text").asString
+
+                val addressComponents = resultObject?.getAsJsonObject("address")?.getAsJsonArray("component")
+
+                var country = ""
+                var region = ""
+                //var street = ""
+                //var house = ""
+
+                if (addressComponents != null) {
+                    for (component in addressComponents) {
+                        val componentObject = component.asJsonObject
+                        val kindArray = componentObject.getAsJsonArray("kind")
+
+                        for (kind in kindArray) {
+                            when (kind.asString) {
+                                "COUNTRY" -> country = componentObject.get("name").asString
+                                "PROVINCE" -> if (region.isBlank()) region = componentObject.get("name").asString
+                                "AREA" -> if (region.isBlank()) region = componentObject.get("name").asString
+                                //"STREET" -> street = componentObject.get("name").asString
+                                //"HOUSE" -> house = componentObject.get("name").asString
+                            }
+                        }
+                    }
+                }
+                suggests.add(Suggest(country = country,
+                    region = region,
+                    place = title,
+                    /*address = "$street $house"*/))
             }
-        return Suggests(filteredResults ?: emptyList())
+        }
+        return Suggests(suggests)
     }
 }

@@ -1,23 +1,23 @@
 package com.joblessrn.hitchhiike.presentation.new_trip
 
+import android.util.Log
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.joblessrn.hitchhiike.data.remote.RetrofitInstanceGeocoder
 import com.joblessrn.hitchhiike.data.remote.RetrofitInstanceSuggester
+import com.joblessrn.hitchhiike.data.remote.models.Suggest
 import com.joblessrn.hitchhiike.data.remote.models.Suggests
 import com.joblessrn.hitchhiike.presentation.new_trip.as_driver.TripToPost
 import com.yandex.mapkit.geometry.Point
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.debounce
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 
 class NewTripViewModel : ViewModel() {
 
-    var tripToPost = TripToPost()
+    val tripToPost = mutableStateOf(TripToPost())
 
     private val _suggestState = mutableStateOf(Suggests(emptyList()))
     val suggestState: State<Suggests> = _suggestState
@@ -29,35 +29,42 @@ class NewTripViewModel : ViewModel() {
     private val placeToSearch = MutableStateFlow("")
     private var coordinatesJob: Job? = null
 
-    fun observeSuggestions(whatToObserve:ObservingObject) {
+    fun observeSuggestions(whatToObserve: ObservingDestination) {
         suggestsJob?.cancel()
         suggestsJob = viewModelScope.launch {
-            _query
-                .debounce(300)
-                .distinctUntilChanged()
-                .collect { prompt ->
-                    if (prompt.isNotEmpty()) {
-                        when(whatToObserve){
-                            ObservingObject.LOCALITY -> {
-                                _suggestState.value =
-                                    RetrofitInstanceSuggester.retrofit.getCitySuggests(place = prompt)
-                            }
-                            ObservingObject.ADDRESS -> {
-                                _suggestState.value =
-                                    RetrofitInstanceSuggester.retrofit.getAddressSuggests(place = prompt)
-                            }
+            _query.collect { prompt ->
+                if (prompt.isNotBlank()) {
+                    when (whatToObserve) {
+                        ObservingDestination.FROM_LOCALITY, ObservingDestination.TO_LOCALITY -> {
+                            _suggestState.value =
+                                RetrofitInstanceSuggester.retrofit.getCitySuggests(place = prompt)
+                            Log.d("suggests", "suggests = ${suggestState.value}")
                         }
 
-                    } else _suggestState.value = Suggests(emptyList())
-                }
+                        ObservingDestination.FROM_ADDRESS -> {
+                            _suggestState.value =
+                                RetrofitInstanceSuggester.retrofit.getAddressSuggests(place = "${tripToPost.value.fromCity} $prompt}")
+                            Log.d("suggests", "suggests = ${suggestState.value}")
+                        }
+
+                        ObservingDestination.TO_ADDRESS -> {
+                            _suggestState.value =
+                                RetrofitInstanceSuggester.retrofit.getAddressSuggests(place = "${tripToPost.value.toCity} $prompt}")
+                            Log.d("suggests", "suggests = ${suggestState.value}")
+                        }
+                    }
+                } else _suggestState.value = Suggests(emptyList())
+            }
         }
     }
 
-    fun clearSuggestionsStopObserving(){
+    fun clearSuggestionsStopObserving() {
         _suggestState.value = Suggests(emptyList())
         _query.value = ""
         suggestsJob?.cancel()
+        Log.d("suggests", "suggests = ${suggestState.value}")
     }
+
     fun stopObservingQuery() {
         suggestsJob?.cancel()
     }
@@ -66,15 +73,63 @@ class NewTripViewModel : ViewModel() {
         _query.value = query
     }
 
+    fun onSuggestionSelected(
+        suggestion: Suggest,
+        destination: ObservingDestination,
+        onCompletion: () -> Unit
+    ) {
+        when (destination) {
+            ObservingDestination.FROM_LOCALITY -> {
+                viewModelScope.launch {
+                    val response =
+                        RetrofitInstanceGeocoder.retrofit.getCityCoordinates(place = suggestion.place)
+                    response.let {
+                        tripToPost.value.fromGeoTag = it
+                        tripToPost.value.fromCountry = suggestion.country
+                        tripToPost.value.fromCity = suggestion.place
+                        Log.d("taggz","${tripToPost.value.fromGeoTag?.longitude},${tripToPost.value.fromGeoTag?.latitude}")
+                        onCompletion()
+                    }
+                }
+            }
+
+            ObservingDestination.TO_LOCALITY -> {
+                viewModelScope.launch {
+                    val response =
+                        RetrofitInstanceGeocoder.retrofit.getCityCoordinates(place = suggestion.place)
+                    response.let {
+                        tripToPost.value.toCountry = suggestion.country
+                        tripToPost.value.toGeoTag = it
+                        tripToPost.value.toCity = suggestion.place
+                        Log.d("taggz","${tripToPost.value.fromGeoTag?.longitude},${tripToPost.value.fromGeoTag?.latitude}")
+                        onCompletion()
+                    }
+                }
+            }
+
+            ObservingDestination.FROM_ADDRESS -> {
+                tripToPost.value.fromAddress = suggestion.place
+                Log.d("taggz","${tripToPost.value.fromGeoTag?.longitude},${tripToPost.value.fromGeoTag?.latitude}")
+                onCompletion()
+            }
+
+            ObservingDestination.TO_ADDRESS -> {
+                tripToPost.value.toAddress = suggestion.place
+                Log.d("taggz","${tripToPost.value.fromGeoTag?.longitude},${tripToPost.value.fromGeoTag?.latitude}")
+                onCompletion()
+            }
+        }
+    }
+
     fun observeCoordinates() {
         coordinatesJob?.cancel()
         coordinatesJob = viewModelScope.launch {
             placeToSearch.collect { prompt ->
                 if (prompt.isNotEmpty()) {
-                    val response = RetrofitInstanceGeocoder.retrofit.getCityCoordinates(place = prompt)
+                    val response =
+                        RetrofitInstanceGeocoder.retrofit.getCityCoordinates(place = prompt)
                     response?.let {
-                        _coordinateState.value = it
-
+                        _coordinateState.value = it.toPoint()
                     }
                 }
             }
@@ -86,8 +141,12 @@ class NewTripViewModel : ViewModel() {
     }
 }
 
-enum class ObservingObject{
-    LOCALITY,
-    ADDRESS
+enum class ObservingDestination() {
+    FROM_LOCALITY,
+    TO_LOCALITY,
+    FROM_ADDRESS,
+    TO_ADDRESS
 }
+
+
 

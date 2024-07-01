@@ -26,7 +26,7 @@ fun DateButton(
             disabledContainerColor = Color.Cyan,
             disabledContentColor= Color.Red
         ),
-        border = BorderStroke(2.dp, Color.LightGray),
+        border = BorderStroke(2.dp, Color.Black),
         shape = RoundedCornerShape(5.dp)
     )
     {
